@@ -594,6 +594,8 @@ void roll_credits (MapPack const & mappack) {
 
 bool describe_mappack (MapPack const & mp) {
 
+  // TODO: factor some code to display pretty windows
+
   int const width = 60;
   int const height = 16;
   int input;

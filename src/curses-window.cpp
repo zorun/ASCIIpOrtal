@@ -5,15 +5,12 @@
 
 using namespace std;
 
-
 void word_wrap(string & s, int width) {
   // stores the position of the last char of the current line
   int eol = width;
   int pos_space = 0;
   while (eol < s.size()) {
     pos_space = s.rfind(' ', eol);
-
-    //    cout << "eol: " << eol << "; pos_space: " << pos_space << endl;
 
     // a nasty big word that won't file on the line
     if (pos_space == string::npos || pos_space < eol - width) {
@@ -27,6 +24,31 @@ void word_wrap(string & s, int width) {
     }
   }
 }
+
+Window::Window(int _height, int _width, win_style _style) {
+  height = _height;
+  width = _width;
+  outerwin = newwin(height, width, (LINES - height) / 2, (COLS - width) / 2);
+  // We keep an empty column on each side, and an empty line at the top
+  innerwin = derwin(outerwin, height - 1, width - 2, 1, 1);
+  
+
+}
+
+Window::add_text(string & s) {
+  // A bit of indentation (TODO)
+  s.replace_all("\n", "\n ");
+
+  word_wrap(s, width-2);
+  mvwprintw(win, 1, cur_line, s.c_str());
+  cur_line += s.count("\n") + 1; // maybe +2?
+}
+
+Window::~Window() {
+  delwin(innerwin);
+  delwin(outerwin);
+}
+
 
 // only used for atoi
 #include <cstdlib>

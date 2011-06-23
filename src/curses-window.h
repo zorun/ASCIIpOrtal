@@ -57,13 +57,19 @@ protected:
   int width;
   win_style style;
   WINDOW* outerwin;
-  WINDOW* innerwin;
+  WINDOW* innerwin; // subwindow of outerwin
+
+  // current line
+  int cur_line;
   
 public:
   Window(int _height, int _width, win_style _style);
+  ~Window();
 
   // It gets displayed first and centered
   void set_title(const std::string &);
+
+  void add_text(const std::string &);
 
   void draw();
 };
