@@ -55,6 +55,11 @@ enum GameObjs {
   DUPLICATOR, SHOT1, SHOT2, PORTAL1, PORTAL2,
   SWITCH, SWITCHON, DOOR, DOOR3, DOOR2, DOOR1,
   BOX, BOULDER, PLAYER, TEXTTRIGGER, FLASH,
+  /* platform components: left/right parts (no portal allowed),
+     and then zero, one or more central parts */
+  PLATFORMH_L, PLATFORMH_C, PLATFORMH_R,
+  /* same thing, but with vertically moving platforms */
+  PLATFORMV_L, PLATFORMV_C, PLATFORMV_R,
   MAXObjects, // defined for ease of reference
   PAUSE, MENUDIM, MENUSELECT, HELPMENU, TEXTFIELD,
   MAXColors

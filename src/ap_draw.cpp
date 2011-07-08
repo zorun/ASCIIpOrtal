@@ -86,10 +86,21 @@ extern const int CharData [MAXColors][6] = // File, Screen, AltScreen (low-ascii
  {0, 249, '|', COLOR_BLUE, COLOR_BLACK, 0}, // DOOR2
  {0, 250, '|', COLOR_BLUE, COLOR_BLACK, 0}, // DOOR1,
  {'&', 3, '&', COLOR_RED, COLOR_CYAN, 0}, // BOX
+ /* '<' and '>' are actually also recognized (boulders with
+    a pre-defined direction) */
  {'O', 9, 'O', COLOR_MAGENTA, COLOR_BLACK, 1}, // BOULDER
  {'@', 143, '@', COLOR_GREEN, COLOR_BLACK, 1}, // PLAYER
  {'1', ' ', ' ', COLOR_WHITE, COLOR_BLACK, 0}, // TEXTTRIGGER
  {0, 15, ' ', COLOR_YELLOW, COLOR_BLACK, 0}, // FLASH
+ /* horizontal platform: '[[[' or ']]]' (either going left or right)
+    vertical platform: '^^^' or 'vvv' (either going up or down)
+    In any case, the platform must be at least 2 characters wide */
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMH_L
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMH_C
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMH_R
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMV_L
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMV_C
+ {0, 223, '-', COLOR_GREEN, COLOR_BLACK, 0}, // PLATFORMV_R
  {0, 0, 0, COLOR_WHITE, COLOR_BLACK, 0}, // MAXObj
  {0, 0, 0, COLOR_GREEN, COLOR_BLACK, 0}, // PAUSE
  {0, 0, 0, COLOR_WHITE, COLOR_BLACK, 0}, // MENUDIM

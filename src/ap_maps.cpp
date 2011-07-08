@@ -319,11 +319,22 @@ int MapPack::load_map() {
           if (toupper(rawmap[yy][xx])== rawmap[yy][xx])
             check = SWITCH;
           else check = DOOR;
-        } else if ((rawmap[yy][xx] >= '1') && (rawmap[yy][xx] <= '9')) {
+        }
+        else if ((rawmap[yy][xx] >= '1') && (rawmap[yy][xx] <= '9'))
           check = TEXTTRIGGER;
-        } else if ((rawmap[yy][xx] == '<') || (rawmap[yy][xx] == '>')) {
+        else if ((rawmap[yy][xx] == '<') || (rawmap[yy][xx] == '>'))
           check = BOULDER;
-        } else for (check = 0; (check < MAXObjects) && (rawmap[yy][xx] != CharData[check][0]); check++) ;
+        else if (rawmap[yy][xx] == '[' || rawmap[yy][xx] == ']' // platform
+                 || rawmap[yy][xx] == '^' || rawmap[yy][xx] == 'v') {
+          // a bit of work to see if we have an edge of the platform,
+          // and detect side-to-side platforms like '[[[]]]]'
+          if (xx == 0 || rawmap[yy][xx-1] != rawmap[yy][xx]) // left edge
+            check = (rawmap[yy][xx] == ']' || rawmap[yy][xx] == '[') ? PLATFORMH_L : PLATFORMV_L;
+          else if (xx+1 == rawmap[yy].size() || rawmap[yy][xx+1] != rawmap[yy][xx]) // right edge
+            check = (rawmap[yy][xx] == ']' || rawmap[yy][xx] == '[') ? PLATFORMH_R : PLATFORMV_R;
+          else check = (rawmap[yy][xx] == ']' || rawmap[yy][xx] == '[') ? PLATFORMH_C : PLATFORMV_C;
+        }
+        else for (check = 0; (check < MAXObjects) && (rawmap[yy][xx] != CharData[check][0]); check++) ;
 
         if (check < MAXObjects) { // then we have a match
           if (check < MAXWall) {  // and it's a map object.
@@ -338,27 +349,43 @@ int MapPack::load_map() {
             newobject.d.x = 0;
             newobject.d.y = 0;
 
-            if (check == SWITCH) {
+            switch (check) {
+            case SWITCH:
               newobject.d.y = rawmap[yy][xx] - 'A';
               mapline[xx + 1] = NONSTICK;
-            }
-            if (check == DOOR) {
+              break;
+            case DOOR:
               newobject.d.y = rawmap[yy][xx] - 'a';
               newobject.d.x = 4;
-            }
-            if (check == TEXTTRIGGER) {
+              break;
+            case TEXTTRIGGER:
               newobject.d.y = rawmap[yy][xx] - '1';
-            }
-            if (check == BOULDER) {
+              break;
+            case BOULDER:
               if (rawmap[yy][xx] == '<') newobject.d.x = -1;
               if (rawmap[yy][xx] == '>') newobject.d.x = 1;
-            }
-            if (newobject.type == PLAYER) hasplayer++;
+              break;
+            case PLAYER:
+              hasplayer++;
+              break;
+            case PLATFORMH_L:
+            case PLATFORMH_C:
+            case PLATFORMH_R:
+              if (rawmap[yy][xx] == '[') newobject.d.x = -1;
+              if (rawmap[yy][xx] == ']') newobject.d.x = 1;
+              break;
+            case PLATFORMV_L:
+            case PLATFORMV_C:
+            case PLATFORMV_R:
+              if (rawmap[yy][xx] == '^') newobject.d.y = -1;
+              if (rawmap[yy][xx] == 'v') newobject.d.y = 1;
+              break;
+            default: break; } // switch(check)
 
             lvl.objm.objs.push_back(newobject);
-          }
-        }
-      }
+          } // dynamic object
+        } // we have a match
+      } // for (each character of the line yy)
       lvl.map.push_back(mapline); // add the line to the current map.
       syy++;
     }

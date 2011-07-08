@@ -630,10 +630,11 @@ int Game::physics () {
         continue;
       case PLAYER: // gravity
         if (move_player() < 0) return -1;
-        if (lvl.map[c->coord.y + 1][c->coord.x + c->d.x] == LADDER) break;
-        if (lvl.map[c->coord.y + 1][c->coord.x] == LADDER) break;
-        if (lvl.map[c->coord.y][c->coord.x] == LADDER) break;
-        if (lvl.map[c->coord.y + sc(c->d.y)][c->coord.x + sc(c->d.x)] == LADDER) break;
+        if (    (lvl.map[c->coord.y + 1][c->coord.x + c->d.x] == LADDER)
+             || (lvl.map[c->coord.y + 1][c->coord.x] == LADDER)
+             || (lvl.map[c->coord.y][c->coord.x] == LADDER)
+             || (lvl.map[c->coord.y + sc(c->d.y)][c->coord.x + sc(c->d.x)] == LADDER) )
+          break;
       case BOULDER: {
         if ((lvl.map[c->coord.y + 1][c->coord.x] == LADDER) && (rand() < RAND_MAX / 2)) break;
       }
