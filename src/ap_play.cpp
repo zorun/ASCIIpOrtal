@@ -245,7 +245,7 @@ int Game::por_col (int yy, int xx) { // Collision specific to portal shots
     case FFIELD:
     case XFIELD:
     case SPIKE:
-      col = NONE;
+      col = 0;
       break;
     case PFIELD:
       col = NONSTICK;
@@ -262,11 +262,6 @@ int Game::por_col (int yy, int xx) { // Collision specific to portal shots
     case PLATFORMV_L:
     case PLATFORMV_R:
       col = NONSTICK;
-      break;
-    case PLATFORMH_C:
-    case PLATFORMV_C:
-      col = NORMAL;
-      break;
   }
   return col;
 }
@@ -670,26 +665,11 @@ int Game::physics () {
         case BOX:
           switch (lvl.map[c->coord.y + 1][c->coord.x]) {
             case LTREAD:
-              if (c->d.x == 0) c->d.x --;
-              break;
+        if (c->d.x == 0) c->d.x --;
+        break;
             case RTREAD:
-              if (c->d.x == 0) c->d.x ++;
-              break;
-          }
-          // standing on a platform
-          objiter below = hitsobj(lvl, NULLOBJ, c->coord.y + 1, c->coord.x);
-          if (below != NULLOBJ)
-            switch (below->type) {
-              case PLATFORMH_L:
-              case PLATFORMH_C:
-              case PLATFORMH_R:
-                c->d.x = below->d.x;
-                break;
-              case PLATFORMV_L:
-              case PLATFORMV_C:
-              case PLATFORMV_R:
-                c->d.y = below->d.y;
-                break;
+        if (c->d.x == 0) c->d.x ++;
+        break;
           }
           break;
       }

@@ -371,14 +371,14 @@ int MapPack::load_map() {
             case PLATFORMH_L:
             case PLATFORMH_C:
             case PLATFORMH_R:
-              if (rawmap[yy][xx] == '[') newobject.d.x = -100;
-              if (rawmap[yy][xx] == ']') newobject.d.x = 100;
+              if (rawmap[yy][xx] == '[') newobject.d.x = -1;
+              if (rawmap[yy][xx] == ']') newobject.d.x = 1;
               break;
             case PLATFORMV_L:
             case PLATFORMV_C:
             case PLATFORMV_R:
-              if (rawmap[yy][xx] == '^') newobject.d.y = -100;
-              if (rawmap[yy][xx] == 'v') newobject.d.y = 100;
+              if (rawmap[yy][xx] == '^') newobject.d.y = -1;
+              if (rawmap[yy][xx] == 'v') newobject.d.y = 1;
               break;
             default: break; } // switch(check)
 
