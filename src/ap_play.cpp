@@ -65,13 +65,6 @@ extern FileManager filemgr;
 extern const int CharData[MAXObjects][6];
 extern int cheatview;
 
-#define ISPLATFORM(x) (x == PLATFORMH_L \
-                       || x == PLATFORMH_C \
-                       || x == PLATFORMH_R \
-                       || x == PLATFORMV_L \
-                       || x == PLATFORMV_C \
-                       || x == PLATFORMV_R)
-
 Game::Game(level &level) : lvl(level),
                            NULLOBJ(level.objm.NULLOBJ)
 {
@@ -257,10 +250,6 @@ int Game::por_col (int yy, int xx) { // Collision specific to portal shots
     case DUPLICATOR :
     case PORTAL1:
     case PORTAL2:
-    case PLATFORMH_L:
-    case PLATFORMH_R:
-    case PLATFORMV_L:
-    case PLATFORMV_R:
       col = NONSTICK;
   }
   return col;
@@ -477,7 +466,7 @@ int Game::move_object (objiter c) {
     c->d.y = 0;
   }
   c->d.y = oldd.y;
-  if (c->type == BOULDER || ISPLATFORM(c->type)) {
+  if (c->type == BOULDER) {
     c->d.x = -sc(oldd.x);
   } else c->d.x = 0;
   if (will_hit(c) == NONE) return applyd(c); // try without dx
