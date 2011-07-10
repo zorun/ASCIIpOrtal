@@ -117,7 +117,6 @@ struct level {
   string texttrigger[9];
 
   ObjectManager objm;
-  object aimobject;
   Pager pager;
 
   // Statistics

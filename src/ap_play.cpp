@@ -110,7 +110,7 @@ objiter hitsobj(level &lvl, objiter it0, int yy, int xx) {
           if (val == it0) val = *it; // Texttriggers get lowest priority.
           break;
         case DOOR:
-          if ((*it)->d.x > 0) val = *it;
+          if ((*it)->state > 0) val = *it;
           break;
         case PORTAL1:
         case PORTAL2: // Portals get highest priority
@@ -145,13 +145,11 @@ void Game::fireportal (int por) {
     lvl.objm.shots[por - SHOT1]->type = NONE;
     lvl.objm.shots[por - SHOT1] = NULLOBJ;
   }
-  object newobject;
-  newobject.coord.x = lvl.objm.player->coord.x + lvl.aimobject.d.x;
-  newobject.coord.y = lvl.objm.player->coord.y + lvl.aimobject.d.y;
+  object newobject(lvl.objm.player->coord.x + lvl.objm.player->d.x,
+                   lvl.objm.player->coord.y + lvl.objm.player->d.y);
   newobject.type = por;
-  newobject.tick = 0;
-  newobject.d.x = lvl.aimobject.d.x;
-  newobject.d.y = lvl.aimobject.d.y;
+  newobject.d.x = newobject.v.x = lvl.objm.player->d.x;
+  newobject.d.y = newobject.v.y = lvl.objm.player->d.y;
   lvl.objm.addobj(newobject);
 }
 
@@ -193,34 +191,34 @@ int Game::switch_in_portal() {
     while (!((control.x == por2->d.x) && (control.y == por2->d.y))) {
       temp.x = control.x; temp.y = control.y;
       control.x = temp.y; control.y = -temp.x;
-      temp.x = c_obj->d.x; temp.y = c_obj->d.y;
-      c_obj->d.x = temp.y; c_obj->d.y = -temp.x;
+      temp.x = c_obj->v.x; temp.y = c_obj->v.y;
+      c_obj->v.x = temp.y; c_obj->v.y = -temp.x;
       rotation++;
     }
 
     if (c_obj->type == PLAYER) {
-      if (lvl.aimobject.d.x == -por2->d.x) { // try to avoid flipflop scenarios due to aiming.
-        if (lvl.aimobject.d.y != 0) lvl.aimobject.d.x = 0;
-        else lvl.aimobject.d.x = -lvl.aimobject.d.x;
+      if (c_obj->d.x == -por2->d.x) { // try to avoid flipflop scenarios due to aiming.
+        if (c_obj->d.y != 0) c_obj->d.x = 0;
+        else c_obj->d.x = -c_obj->d.x;
       }
-      if (lvl.aimobject.d.y == -por2->d.y) {
-        if (lvl.aimobject.d.x != 0) lvl.aimobject.d.y = 0;
-        else lvl.aimobject.d.y = -lvl.aimobject.d.y;
+      if (c_obj->d.y == -por2->d.y) {
+        if (c_obj->d.x != 0) c_obj->d.y = 0;
+        else c_obj->d.y = -c_obj->d.y;
       }
     }
 
-    if (c_obj->d.x == 2 * sc(c_obj->d.x))
-      c_obj->d.x = sc(c_obj->d.x); // slow the slide for small drops
-    if (c_obj->d.y == -1) c_obj->d.y = -2; // help out of holes.
-    if ((c_obj->type == PLAYER) && (por2->d.y == -1) && (c_obj->d.y == 0) && (c_obj->d.x == 0)) c_obj->d.y = -2;
-    if (c_obj->d.y < -2) c_obj->d.y++;
+    if (c_obj->v.x == 2 * sc(c_obj->v.x))
+      c_obj->v.x = sc(c_obj->v.x); // slow the slide for small drops
+    if (c_obj->v.y == -1) c_obj->v.y = -2; // help out of holes.
+    if ((c_obj->type == PLAYER) && (por2->d.y == -1) && (c_obj->v.y == 0) && (c_obj->v.x == 0)) c_obj->v.y = -2;
+    if (c_obj->v.y < -2) c_obj->v.y++;
 
     return rotation;
   }
   return -1;
 }
 
-int sc (int x) {
+inline int sc (int x) {
   if (x < 0) return -1;
   if (x > 0) return 1;
   return 0;
@@ -246,7 +244,7 @@ int Game::por_col (int yy, int xx) { // Collision specific to portal shots
   objiter colobj = hitsobj(lvl, NULLOBJ, yy, xx);
   if (colobj != NULLOBJ)
   switch (colobj->type) {
-    case DOOR : if (colobj->d.x > 0) col = NONSTICK; break;
+    case DOOR : if (colobj->state > 0) col = NONSTICK; break;
     case DUPLICATOR :
     case PORTAL1:
     case PORTAL2:
@@ -262,37 +260,37 @@ bool Game::has_won() {
 int Game::will_hit (objiter c) {
   objiter c_obj; // = hitsobj(c, c->coord.y + d.y, c->coord.x + d.x);
   int c_wall; // = hitswall(c->coord.y + d.y, c->coord.x + d.x);
-  XY d;
+  XY v;
 
-  if ((c->type == BOULDER) && ((c->d.y > 0) || (lvl.ticks % boulderbeats)))
-    d.x = 0;
+  if ((c->type == BOULDER) && ((c->v.y > 0) || (lvl.ticks % boulderbeats)))
+    v.x = 0;
   else
-    d.x = sc(c->d.x);
-  d.y = sc(c->d.y);
+    v.x = sc(c->v.x);
+  v.y = sc(c->v.y);
 
-  c_obj = hitsobj(lvl, c, c->coord.y + d.y, c->coord.x + d.x);
-  c_wall = hitswall(lvl, c->coord.y + d.y, c->coord.x + d.x);
+  c_obj = hitsobj(lvl, c, c->coord.y + v.y, c->coord.x + v.x);
+  c_wall = hitswall(lvl, c->coord.y + v.y, c->coord.x + v.x);
 
   if ((c_obj != c) && (c_obj->type != NONE)) { // if hit object
     int objtype = c_obj->type;
 
     if (objtype == TEXTTRIGGER) {
       if (c->type == PLAYER) {
-        if (lvl.texttrigger[c_obj->d.y].size()) {
-          lvl.pager.add_scrolling(lvl.texttrigger[c_obj->d.y]);
+        if (lvl.texttrigger[c_obj->id].size()) {
+          lvl.pager.add_scrolling(lvl.texttrigger[c_obj->id]);
 #ifndef __NOSOUND__
           play_sound(VOICE + rand() % 10);
 #endif
         }
-        lvl.objm.killtriggers(c_obj->d.y);
+        lvl.objm.killtriggers(c_obj->id);
       }
       if ((c->type == SWITCH) || (c->type == SWITCHON))
         return objtype;
       return NONE;
     }
     if ((objtype == PORTAL1) || (objtype == PORTAL2)) { // if hit portal
-      if (((c_obj->d.x != 0) && (c_obj->d.x != d.x))
-          || ((c_obj->d.y != 0) && (c_obj->d.y != d.y))) { // only allow in if portal is right direction
+      if (((c_obj->d.x != 0) && (c_obj->d.x != v.x))
+          || ((c_obj->d.y != 0) && (c_obj->d.y != v.y))) { // only allow in if portal is right direction
         objiter other_por = lvl.objm.portals[(objtype == PORTAL1) ? 1 : 0]; // get the other portal
         if (other_por != NULLOBJ) { // Yes 2 portals present
           objiter inp = in_portal();
@@ -307,15 +305,15 @@ int Game::will_hit (objiter c) {
     }
 
     if (((c->type == PLAYER) || (c->type == BOULDER)) && (objtype == BOX)) {
-      if (!c->d.y) {
-        c_obj->d.x += d.x;
+      if (!c->v.y) {
+        c_obj->v.x += v.x;
         if ((move_object (c_obj)) && (c->type != BOULDER)) {
           objtype = NONE;
         }
       }
     }
     if ((c->type == PLAYER) && (objtype == BOULDER)) { // if player hit boulder
-      if (d.y <= 0) {
+      if (v.y <= 0) {
 #ifndef __NOSOUND__
         play_sound (CRUSH);
 #endif
@@ -325,7 +323,7 @@ int Game::will_hit (objiter c) {
         lvl.objm.player = NULLOBJ;
         c->type = NONE; //   kill player
         return NONE;
-      } else d.y = 0;
+      } else v.y = 0;
     } else if ((c->type == BOULDER) && (objtype == PLAYER)) { // if boulder hit player
 #ifndef __NOSOUND__
       play_sound (CRUSH);
@@ -350,15 +348,15 @@ int Game::will_hit (objiter c) {
 int Game::applyd (objiter c) {
   int dx, dy;
 
-  if ((c->type == BOULDER) && ((c->d.y != 0) || (lvl.ticks % boulderbeats))) {
+  if ((c->type == BOULDER) && ((c->v.y != 0) || (lvl.ticks % boulderbeats))) {
     dx = 0;
-  } else dx = sc(c->d.x);
-  dy = sc(c->d.y);
+  } else dx = sc(c->v.x);
+  dy = sc(c->v.y);
   lvl.objm.moveobj(c, c->coord.x + dx, c->coord.y + dy);
   if (c->type != BOULDER) {
-    if (c->d.x != 0) c->d.x -= dx;
-  } else if ((c->d.x < -1) || (c->d.x > 1)) c->d.x -= dx;
-  if (c->d.y < 0) c->d.y++;
+    if (c->v.x != 0) c->v.x -= dx;
+  } else if ((c->v.x < -1) || (c->v.x > 1)) c->v.x -= dx;
+  if (c->v.y < 0) c->v.y++;
 
   if (dx || dy) return 1;
   return 0;
@@ -375,13 +373,13 @@ void Game::collapse_portals () {
       por1 = lvl.objm.portals[1];
       por2 = lvl.objm.portals[0];
     }
-    in_por->d.x += por1->d.x; // push anything stuck in portal out.
-    in_por->d.y += por1->d.y; // before collapsing it.
+    in_por->v.x += por1->d.x; // push anything stuck in portal out.
+    in_por->v.y += por1->d.y; // before collapsing it.
     in_por->tick--; // make sure a move is possible.
     if (!move_object(in_por)) {
       switch_in_portal();
-      in_por->d.x += por2->d.x;
-      in_por->d.y += por2->d.y;
+      in_por->v.x += por2->d.x;
+      in_por->v.y += por2->d.y;
       in_por->tick--;
       if (!move_object(in_por)) {
         if (in_por->type == PLAYER)
@@ -394,13 +392,13 @@ void Game::collapse_portals () {
   // cancel all portals
   for (int i = 0; i < 2; ++i) {
     if (lvl.objm.portals[i] != NULLOBJ) {
-      lvl.objm.portals[i]->d.y = CharData[PORTAL1 + i][3];
+      lvl.objm.portals[i]->state = CharData[PORTAL1 + i][3];
       lvl.objm.portals[i]->type = FLASH;
       lvl.objm.portals[i] = NULLOBJ;
       playsound = 1;
     }
     if (lvl.objm.shots[i] != NULLOBJ) {
-      lvl.objm.shots[i]->d.y = CharData[SHOT1 + i][3];
+      lvl.objm.shots[i]->state = CharData[SHOT1 + i][3];
       lvl.objm.shots[i]->type = FLASH;
       lvl.objm.shots[i] = NULLOBJ;
       playsound = 1;
@@ -423,11 +421,11 @@ int Game::move_object (objiter c) {
   c_obj = hitsobj(lvl, c, c->coord.y, c->coord.x);
   if ((c_obj->type == PORTAL1) || (c_obj->type == PORTAL2)) { // if obj[c] is in portal
     bool needswitch = false;
-    if ((c->d.x) && (sc(c->d.x) == -c_obj->d.x)) needswitch = true;
-    if ((c->d.y) && (sc(c->d.y) == -c_obj->d.y)) needswitch = true;
+    if ((c->v.x) && (sc(c->v.x) == -c_obj->d.x)) needswitch = true;
+    if ((c->v.y) && (sc(c->v.y) == -c_obj->d.y)) needswitch = true;
     if (c->type == PLAYER) {
-      if ((lvl.aimobject.d.x) && (sc(lvl.aimobject.d.x) == -c_obj->d.x)) needswitch = true;
-      if ((lvl.aimobject.d.y) && (sc(lvl.aimobject.d.y) == -c_obj->d.y)) needswitch = true;
+      if ((c->d.x) && (sc(c->d.x) == -c_obj->d.x)) needswitch = true;
+      if ((c->d.y) && (sc(c->d.y) == -c_obj->d.y)) needswitch = true;
     }
 
     if (needswitch) { // if facing the right way
@@ -442,14 +440,14 @@ int Game::move_object (objiter c) {
     }
   } // And that's how portals should work.
 
-  XY oldd;
+  XY oldv;
 
-  oldd.x = c->d.x; oldd.y = c->d.y;
+  oldv.x = c->v.x; oldv.y = c->v.y;
   if (will_hit(c) == NONE) return applyd(c);
-  c->d.y = 0;
+  c->v.y = 0;
   if (will_hit(c) == NONE) return applyd(c); // try without dy
-  if ((c->type == PLAYER) && (c->d.x)) {
-    c->d.y = -1; // step up;
+  if ((c->type == PLAYER) && (c->v.x)) {
+    c->v.y = -1; // step up;
 
     objiter porcheck = hitsobj(lvl, c, c->coord.y, c->coord.x);
     if ((porcheck->type == PORTAL1) || (porcheck->type == PORTAL2)) {
@@ -463,14 +461,14 @@ int Game::move_object (objiter c) {
       }
     }
     if (will_hit(c) == NONE) return applyd(c);
-    c->d.y = 0;
+    c->v.y = 0;
   }
-  c->d.y = oldd.y;
+  c->v.y = oldv.y;
   if (c->type == BOULDER) {
-    c->d.x = -sc(oldd.x);
-  } else c->d.x = 0;
+    c->v.x = -sc(oldv.x);
+  } else c->v.x = 0;
   if (will_hit(c) == NONE) return applyd(c); // try without dx
-  c->d.y = 0;
+  c->v.y = 0;
   return 0; // didn't move
 }
 
@@ -487,13 +485,13 @@ int Game::physics () {
           objiter dupe = hitsobj(lvl, c, c->coord.y - 1, c->coord.x);
           if ((c != dupe) && (dupe->type == BOX || dupe->type == BOULDER)
               && (c == hitsobj(lvl, c, c->coord.y + 1, c->coord.x))) {
-            object newobject;
-            newobject.coord.x = c->coord.x;
-            newobject.coord.y = c->coord.y;
+            object newobject(c->coord.x, c->coord.y);
             newobject.type = dupe->type;
             newobject.tick = dupe->tick;
             newobject.d.x = dupe->d.x;
-            newobject.d.y = 0;
+            newobject.v.x = dupe->v.x;
+            newobject.d.y = newobject.v.y = 0;
+            newobject.state = c->state;
             lvl.objm.addobj(newobject);
             c->d.y = beatsperdupe;
 #ifndef __NOSOUND__
@@ -513,14 +511,14 @@ int Game::physics () {
             if ((colobj->type == PLAYER) || (colobj->type == BOX)) playsound = 2;
           }
           int otheropen = 0;
-          for (int i = 0; i < lvl.objm.switches[c->d.y].size(); i++)
-            if (lvl.objm.switches[c->d.y][i]->type == SWITCH)
+          for (int i = 0; i < lvl.objm.switches[c->id].size(); ++i)
+            if (lvl.objm.switches[c->id][i]->type == SWITCH)
               otheropen = 1;
           if (!otheropen) // open the doors
-            for (int i = 0; i < lvl.objm.doors[c->d.y].size(); i++) {
-              objiter d = lvl.objm.doors[c->d.y][i];
-              if (((colobj->type == PLAYER) || (colobj->type == BOX)) && (d->d.x == 4)) playsound = 1;
-              if (--d->d.x < 0) d->d.x = 0;
+            for (int i = 0; i < lvl.objm.doors[c->id].size(); ++i) {
+              objiter d = lvl.objm.doors[c->id][i];
+              if (((colobj->type == PLAYER) || (colobj->type == BOX)) && (d->state == 4)) playsound = 1;
+              if (--d->state < 0) d->state = 0;
             }
 #ifndef __NOSOUND__
           if (playsound == 1) play_sound(DOOROPEN);
@@ -528,15 +526,15 @@ int Game::physics () {
 #endif
         } else {
           c->type = SWITCH;
-          for (int i = 0; i < lvl.objm.doors[c->d.y].size(); i++) {
-            objiter d = lvl.objm.doors[c->d.y][i];
-            if (c->d.y >= 6) { // if it's a momentary switch
+          for (int i = 0; i < lvl.objm.doors[c->id].size(); i++) {
+            objiter d = lvl.objm.doors[c->id][i];
+            if (c->id >= 6) { // if it's a momentary switch
               if (d == hitsobj(lvl, d, d->coord.y, d->coord.x)) { // and there's nothing in the door
-                if (d->d.x == 0) playsound = 1;
-                if (++d->d.x > 4) d->d.x = 4; // close the door
+                if (d->state == 0) playsound = 1;
+                if (++d->state > 4) d->state = 4; // close the door
               }
-            } else if (d->d.x < 4) // else finish opening the door.
-              if (--d->d.x < 0) d->d.x = 0;
+            } else if (d->state < 4) // else finish opening the door.
+              if (--d->state < 0) d->state = 0;
           }
 #ifndef __NOSOUND__
           if (playsound == 1) play_sound(DOORCLOSE);
@@ -560,7 +558,8 @@ int Game::physics () {
           int col = por_col(c->coord.y, c->coord.x);
           if (col) {
             if (col == NONSTICK) {
-              c->d.y = CharData[c->type][3];
+              // animate the failed portal
+              c->state = CharData[c->type][3];
               lvl.objm.shots[c->type - SHOT1] = NULLOBJ;
               c->type = FLASH;
 #ifndef __NOSOUND__
@@ -595,7 +594,7 @@ int Game::physics () {
 #ifndef __NOSOUND__
               play_sound (PORTALFAIL);
 #endif
-              c->d.y = CharData[c->type][3];
+              c->state = CharData[c->type][3];
               lvl.objm.shots[c->type - SHOT1] = NULLOBJ;
               c->type = FLASH;
               z = portalspeed; continue;
@@ -604,13 +603,13 @@ int Game::physics () {
               objiter d = lvl.objm.portals[por];
               objiter in_por = hitsobj(lvl, d, d->coord.y, d->coord.x);
               if ((in_por != d) && (in_por->type != PORTAL1) && (in_por->type != PORTAL2)){
-                in_por->d.x += d->d.x; // push anything stuck in portal out.
-                in_por->d.y += d->d.y; // before collapsing it. FIXME: similar code elsewhere-- remove the redundancy
+                in_por->v.x += d->v.x; // push anything stuck in portal out.
+                in_por->v.y += d->v.y; // before collapsing it. FIXME: similar code elsewhere-- remove the redundancy
                 if (!move_object(in_por)) {
                   switch_in_portal();
                 }
               }
-              d->d.y = CharData[d->type][3];
+              d->state = CharData[d->type][3];
               d->type = FLASH;
             }
             lvl.stats.numportals++;
@@ -621,7 +620,7 @@ int Game::physics () {
             lvl.objm.shots[c->type - SHOT1] = NULLOBJ;
             lvl.objm.portals[por] = c;
             c->type = PORTAL1 + por;
-            lvl.aimobject.type = SHOT1 + ((por + 1) % 2);
+            lvl.objm.player->state = SHOT1 + ((por + 1) % 2);
             z = portalspeed;
           } else {
             lvl.objm.moveobj(c, c->coord.x + c->d.x, c->coord.y + c->d.y);
@@ -630,17 +629,17 @@ int Game::physics () {
         continue;
       case PLAYER: // gravity
         if (move_player() < 0) return -1;
-        if (    (lvl.map[c->coord.y + 1][c->coord.x + c->d.x] == LADDER)
+        if (    (lvl.map[c->coord.y + 1][c->coord.x + c->v.x] == LADDER)
              || (lvl.map[c->coord.y + 1][c->coord.x] == LADDER)
              || (lvl.map[c->coord.y][c->coord.x] == LADDER)
-             || (lvl.map[c->coord.y + sc(c->d.y)][c->coord.x + sc(c->d.x)] == LADDER) )
+             || (lvl.map[c->coord.y + sc(c->v.y)][c->coord.x + sc(c->v.x)] == LADDER) )
           break;
       case BOULDER: {
         if ((lvl.map[c->coord.y + 1][c->coord.x] == LADDER) && (rand() < RAND_MAX / 2)) break;
       }
       case BOX:
-        if ((c->d.x > 2) || (c->d.x < -2) || (c->d.y < -2)) break; // fling!
-        if (++(c->d.y) > maxfling) c->d.y = maxfling;
+        if ((c->v.x > 2) || (c->v.x < -2) || (c->v.y < -2)) break; // fling!
+        if (++(c->v.y) > maxfling) c->v.y = maxfling;
       default:
         break;
     } // End every tick movements.
@@ -648,16 +647,16 @@ int Game::physics () {
     if (!(lvl.ticks % beatspermove)) { // X-axis automovements
       switch (c->type) {
         case BOULDER:
-          if (c->d.x == 0) c->d.x = (rand() < RAND_MAX / 2) ? 1 : -1;
+          if (c->v.x == 0) c->v.x = (rand() < RAND_MAX / 2) ? 1 : -1;
           break;
         case PLAYER:
         case BOX:
           switch (lvl.map[c->coord.y + 1][c->coord.x]) {
             case LTREAD:
-        if (c->d.x == 0) c->d.x --;
+        if (c->v.x == 0) c->v.x --;
         break;
             case RTREAD:
-        if (c->d.x == 0) c->d.x ++;
+        if (c->v.x == 0) c->v.x ++;
         break;
           }
           break;
@@ -668,8 +667,8 @@ int Game::physics () {
     switch (c->type) { // kill objects / clean up
       case PLAYER:
         if (lvl.map[c->coord.y][c->coord.x] == LADDER) {
-          c->d.y = 0;
-          c->d.x = 0;
+          c->v.y = 0;
+          c->v.x = 0;
         }
       case BOULDER:
       case BOX: {
@@ -711,26 +710,26 @@ int Game::move_player () {
     return 1;
   }
   switch (input) {
-    case '1' : lvl.aimobject.d.y =  1; lvl.aimobject.d.x = -1; break;
-    case '2' : lvl.aimobject.d.y =  1; lvl.aimobject.d.x =  0; break;
-    case '3' : lvl.aimobject.d.y =  1; lvl.aimobject.d.x =  1; break;
-    case '4' : lvl.aimobject.d.y =  0; lvl.aimobject.d.x = -1; break;
-    case '6' : lvl.aimobject.d.y =  0; lvl.aimobject.d.x =  1; break;
-    case '7' : lvl.aimobject.d.y = -1; lvl.aimobject.d.x = -1; break;
-    case '8' : lvl.aimobject.d.y = -1; lvl.aimobject.d.x =  0; break;
-    case '9' : lvl.aimobject.d.y = -1; lvl.aimobject.d.x =  1; break;
+    case '1' : lvl.objm.player->d.y =  1; lvl.objm.player->d.x = -1; break;
+    case '2' : lvl.objm.player->d.y =  1; lvl.objm.player->d.x =  0; break;
+    case '3' : lvl.objm.player->d.y =  1; lvl.objm.player->d.x =  1; break;
+    case '4' : lvl.objm.player->d.y =  0; lvl.objm.player->d.x = -1; break;
+    case '6' : lvl.objm.player->d.y =  0; lvl.objm.player->d.x =  1; break;
+    case '7' : lvl.objm.player->d.y = -1; lvl.objm.player->d.x = -1; break;
+    case '8' : lvl.objm.player->d.y = -1; lvl.objm.player->d.x =  0; break;
+    case '9' : lvl.objm.player->d.y = -1; lvl.objm.player->d.x =  1; break;
     case '0' :
     case 'Z' :
-    case 'z' : lvl.aimobject.type = SHOT1; fireportal(lvl.aimobject.type); break;
+    case 'z' : lvl.objm.player->state = SHOT1; fireportal(lvl.objm.player->state); break;
     case '.' :
     case 'X' :
-    case 'x' : lvl.aimobject.type = SHOT2; fireportal(lvl.aimobject.type); break;
+    case 'x' : lvl.objm.player->state = SHOT2; fireportal(lvl.objm.player->state); break;
     case 'C' :
     case 'c' : collapse_portals (); break;
     case '5' :
     case '\n':
     case ' ' :
-      fireportal(lvl.aimobject.type);
+      fireportal(lvl.objm.player->state);
       break;
     case '?' : help_menu (); break;
     case 27 : // ASCII for escape
@@ -786,24 +785,24 @@ int Game::move_player () {
     case 'd' :
     case 'D' :
     case KEY_RIGHT :
-      if (lvl.aimobject.d.x == 1) {
-        if (lvl.objm.player->d.x <= 0) lvl.objm.player->d.x ++;
+      if (lvl.objm.player->d.x == 1) {
+        if (lvl.objm.player->v.x <= 0) lvl.objm.player->v.x ++;
         lvl.stats.numsteps++;
       } else {
-        lvl.aimobject.coord.x = lvl.aimobject.d.x = 1;
+        lvl.objm.player->d.x = 1;
       }
-      lvl.aimobject.d.y = 0;
+      lvl.objm.player->d.y = 0;
       break;
     case 'a' :
     case 'A' :
     case KEY_LEFT :
-      if (lvl.aimobject.d.x == -1) {
-        if (lvl.objm.player->d.x >= 0) lvl.objm.player->d.x --;
+      if (lvl.objm.player->d.x == -1) {
+        if (lvl.objm.player->v.x >= 0) lvl.objm.player->v.x --;
         lvl.stats.numsteps++;
       } else {
-        lvl.aimobject.coord.x = lvl.aimobject.d.x = -1;
+        lvl.objm.player->d.x = -1;
       }
-      lvl.aimobject.d.y = 0;
+      lvl.objm.player->d.y = 0;
       break;
     case 'w' :
     case 'W' :
@@ -813,16 +812,16 @@ int Game::move_player () {
                || (hitsobj(lvl, lvl.objm.player, lvl.objm.player->coord.y - 1, lvl.objm.player->coord.x)->type == PORTAL1)
                || (hitsobj(lvl, lvl.objm.player, lvl.objm.player->coord.y - 1, lvl.objm.player->coord.x)->type == PORTAL2))))
         {
-          if (lvl.objm.player->d.y >= 0) lvl.objm.player->d.y --;
+          if (lvl.objm.player->v.y >= 0) lvl.objm.player->v.y --;
           lvl.stats.numsteps++;
         } else
-        if ((lvl.aimobject.d.x == 0) && (lvl.aimobject.d.y > 0)) {
-          lvl.aimobject.d.x = lvl.aimobject.coord.x;
+        if ((lvl.objm.player->d.x == 0) && (lvl.objm.player->d.y > 0)) {
+          lvl.objm.player->d.x = (rand() < RAND_MAX / 2) ? -1 : 1; // TODO
         } else {
-          lvl.aimobject.d.y--;
-          if (lvl.aimobject.d.y < -1) {
-            lvl.aimobject.d.y = -1;
-            lvl.aimobject.d.x = 0;
+          lvl.objm.player->d.y--;
+          if (lvl.objm.player->d.y < -1) {
+            lvl.objm.player->d.y = -1;
+            lvl.objm.player->d.x = 0;
           }
         }
       break;
@@ -833,15 +832,15 @@ int Game::move_player () {
       || (lvl.map[lvl.objm.player->coord.y + 1][lvl.objm.player->coord.x] == LADDER))
           && ((!hitswall(lvl, lvl.objm.player->coord.y + 1, lvl.objm.player->coord.x) || (hitsobj(lvl, lvl.objm.player, lvl.objm.player->coord.y + 1, lvl.objm.player->coord.x)->type == PORTAL1) || (hitsobj(lvl, lvl.objm.player, lvl.objm.player->coord.y + 1, lvl.objm.player->coord.x)->type == PORTAL2))))
       {
-        lvl.objm.player->d.y ++;
+        lvl.objm.player->v.y ++;
         lvl.stats.numsteps++;
-      } else if ((lvl.aimobject.d.x == 0) && (lvl.aimobject.d.y < 0)) {
-        lvl.aimobject.d.x = lvl.aimobject.coord.x;
+      } else if ((lvl.objm.player->d.x == 0) && (lvl.objm.player->d.y < 0)) {
+        lvl.objm.player->d.x = (rand() < RAND_MAX / 2) ? -1 : 1; // TODO
       } else {
-        lvl.aimobject.d.y++;
-        if (lvl.aimobject.d.y > 1) {
-          lvl.aimobject.d.y = 1;
-          lvl.aimobject.d.x = 0;
+        lvl.objm.player->d.y++;
+        if (lvl.objm.player->d.y > 1) {
+          lvl.objm.player->d.y = 1;
+          lvl.objm.player->d.x = 0;
         }
       }
       break;

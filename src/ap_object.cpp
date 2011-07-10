@@ -28,18 +28,28 @@
 
 using namespace std;
 
+object::object(int x, int y) {
+  coord.x = x;
+  coord.y = y;
+  width = 1;
+  height = 1;
+  type = tick = v.x = v.y = d.x = d.y = state = id = 0;
+}
+
 void ObjectManager::addobj(object& obj) {
   if (obj.coord.x < 0) obj.coord.x = 0;
   if (obj.coord.y < 0) obj.coord.y = 0;
-  if (obj.coord.x >= mw) obj.coord.x = mw-1;
-  if (obj.coord.y >= mh) obj.coord.y = mh-1;
+  if (obj.coord.x + obj.width > mw) obj.coord.x = mw - obj.width;
+  if (obj.coord.y + obj.height > mh) obj.coord.y = mh - obj.height;
   objs.push_back(obj);
   objiter it = --objs.end();
   switch (it->type) {
     case SHOT1: shots[0] = it; break;
     case SHOT2: shots[1] = it; break;
   }
-  objmap[obj.coord.y][obj.coord.x].push_back(it);
+  for (int i = 0; i < obj.width; ++i)
+    for (int j = 0; j < obj.height; ++j)
+      objmap[obj.coord.y + j][obj.coord.x + i].push_back(it);
 }
 
 objiter ObjectManager::delobj(objiter it) {
@@ -50,17 +60,26 @@ objiter ObjectManager::delobj(objiter it) {
     case SHOT1:   shots[0]   = NULLOBJ; break;
     case SHOT2:   shots[1]   = NULLOBJ; break;
   }
-  objmap[it->coord.y][it->coord.x].remove(it);
+  for (int i = 0; i < it->width; ++i)
+    for (int j = 0; j < it->height; ++j)
+      objmap[it->coord.y + j][it->coord.x + i].remove(it);
   return objs.erase(it);
 }
 
 void ObjectManager::moveobj(objiter it, int x, int y) {
   if (x < 0) x = 0;
   if (y < 0) y = 0;
-  if (x >= mw) x = mw-1;
-  if (y >= mh) y = mh-1;
-  objmap[it->coord.y][it->coord.x].remove(it);
-  objmap[y][x].push_back(it);
+  if (x + it->width > mw) x = mw - it->width;
+  if (y + it->height > mh) y = mh - it->height;
+  // TODO: usually, objects don't move a lot, so it might be worth
+  // checking for intersection between the previous location and the
+  // future location (for larges objects)
+  for (int i = 0; i < it->width; ++i)
+    for (int j = 0; j < it->height; ++j)
+      objmap[it->coord.y + j][it->coord.x + i].remove(it);
+  for (int i = 0; i < it->width; ++i)
+    for (int j = 0; j < it->height; ++j)
+      objmap[y + j][x + i].push_back(it);
   it->coord.y = y;
   it->coord.x = x;
 }
@@ -82,17 +101,19 @@ void ObjectManager::resetmap(int w, int h) {
   objmap.assign(h, v);
 
   for (objiter it = objs.begin(); it != objs.end(); it++) {
-    objmap[it->coord.y][it->coord.x].push_back(it);
+    for (int i = 0; i < it->width; ++i)
+      for (int j = 0; j < it->height; ++j)
+        objmap[it->coord.y + j][it->coord.x + i].push_back(it);
     switch (it->type) {
       case PLAYER:  player     = it; break;
       case PORTAL1: portals[0] = it; break;
       case PORTAL2: portals[1] = it; break;
       case DOOR:
-        doors[it->d.y].push_back(it); break;
+        doors[it->id].push_back(it); break;
       case SWITCH:
-        switches[it->d.y].push_back(it); break;
+        switches[it->id].push_back(it); break;
       case TEXTTRIGGER:
-        triggers[it->d.y].push_back(it); break;
+        triggers[it->id].push_back(it); break;
     }
   }
 }

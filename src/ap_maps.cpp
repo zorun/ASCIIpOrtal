@@ -270,12 +270,6 @@ int MapPack::load_map() {
   int yy, xx, syy;
   int hasplayer = 0;
 
-  lvl.aimobject.coord.x = 1; // used to remember x
-  lvl.aimobject.type = SHOT1;
-  lvl.aimobject.tick = 0;
-  lvl.aimobject.d.x = 1;
-  lvl.aimobject.d.y = 0;
-
   vector<int> blankline(maxwidth + 2, NONSTICK); // one extra line to start
   lvl.map.push_back(blankline);
   syy = 1; // screen yy
@@ -341,29 +335,24 @@ int MapPack::load_map() {
             mapline[xx + 1] = check;
           } else { // No, it's a dynamic object, not a map object.
             mapline[xx + 1] = NONE;
-            object newobject;
-            newobject.coord.x = xx + 1;
-            newobject.coord.y = syy;
+            object newobject(xx + 1, syy);
             newobject.type = check;
-            newobject.tick = 0;
-            newobject.d.x = 0;
-            newobject.d.y = 0;
 
             switch (check) {
             case SWITCH:
-              newobject.d.y = rawmap[yy][xx] - 'A';
+              newobject.id = rawmap[yy][xx] - 'A';
               mapline[xx + 1] = NONSTICK;
               break;
             case DOOR:
-              newobject.d.y = rawmap[yy][xx] - 'a';
-              newobject.d.x = 4;
+              newobject.id = rawmap[yy][xx] - 'a';
+              newobject.state = 4;
               break;
             case TEXTTRIGGER:
-              newobject.d.y = rawmap[yy][xx] - '1';
+              newobject.id = rawmap[yy][xx] - '1';
               break;
             case BOULDER:
-              if (rawmap[yy][xx] == '<') newobject.d.x = -1;
-              if (rawmap[yy][xx] == '>') newobject.d.x = 1;
+              if (rawmap[yy][xx] == '<') newobject.v.x = -1;
+              if (rawmap[yy][xx] == '>') newobject.v.x = 1;
               break;
             case PLAYER:
               hasplayer++;
@@ -371,14 +360,14 @@ int MapPack::load_map() {
             case PLATFORMH_L:
             case PLATFORMH_C:
             case PLATFORMH_R:
-              if (rawmap[yy][xx] == '[') newobject.d.x = -1;
-              if (rawmap[yy][xx] == ']') newobject.d.x = 1;
+              if (rawmap[yy][xx] == '[') newobject.v.x = -1;
+              if (rawmap[yy][xx] == ']') newobject.v.x = 1;
               break;
             case PLATFORMV_L:
             case PLATFORMV_C:
             case PLATFORMV_R:
-              if (rawmap[yy][xx] == '^') newobject.d.y = -1;
-              if (rawmap[yy][xx] == 'v') newobject.d.y = 1;
+              if (rawmap[yy][xx] == '^') newobject.v.y = -1;
+              if (rawmap[yy][xx] == 'v') newobject.v.y = 1;
               break;
             default: break; } // switch(check)
 
@@ -436,6 +425,12 @@ int MapPack::load_map() {
     return 0;
     }*/
 
+  // must be sure to have a player in the object manager
+  //lvl.aimobject.coord.x = 1; // used to remember x // TODO
+  lvl.objm.player->state = SHOT1;
+  //lvl.aimobject.tick = 0;
+  lvl.objm.player->d.x = 1;
+  lvl.objm.player->d.y = 0;
 } // MapPack::load_map
 
 void MapPack::update_stats() {

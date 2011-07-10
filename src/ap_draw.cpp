@@ -173,10 +173,10 @@ int obj_color_pair(level const & lvl, objiter obj) {
   int b = CharData[obj->type][5];
 
   if (obj->type == DOOR) {
-    if (obj->d.x == 4) {
-      fore = obj->d.y % 6 + 1;
+    if (obj->state == 4) {
+      fore = obj->id % 6 + 1;
       if (fore >= COLOR_GREEN) fore++;
-      if (obj->d.y == 12) fore = COLOR_GREEN;
+      if (obj->id == 12) fore = COLOR_GREEN;
       if (fore == COLOR_BLUE) b = 1;
     } else {
       fore = CharData[DOOR1][3];
@@ -184,12 +184,12 @@ int obj_color_pair(level const & lvl, objiter obj) {
     }
   }
   if (obj->type == FLASH) {
-    fore = obj->d.y;
+    fore = obj->state;
   }
   if (obj->type == SWITCH || obj->type == SWITCHON) {
-    back = obj->d.y % 6 + 1;
+    back = obj->id % 6 + 1;
     if (back >= COLOR_GREEN) back++;
-    if (obj->d.y == 12) back = COLOR_GREEN;
+    if (obj->id == 12) back = COLOR_GREEN;
   }
   if (lvl.map.size()) {
     if ((obj->type == PLAYER) || (obj->type == BOULDER) || (obj->type == FLASH)) {
@@ -259,7 +259,7 @@ inline objiter object_at (level & lvl, XY coord) {
       case TEXTTRIGGER:
         break;
       case DOOR:
-        if ((*it)->d.x > 0 && retval == lvl.objm.NULLOBJ)
+        if ((*it)->state > 0 && retval == lvl.objm.NULLOBJ)
           retval = *it;
         break;
       case PORTAL1:
@@ -291,19 +291,19 @@ int obj_screenchar(level const & lvl, objiter obj) {
 
   objtype = obj->type;
   if (objtype == DOOR) {
-    switch (obj->d.x) {
+    switch (obj->state) {
       case 3: objtype = DOOR3; break;
       case 2: objtype = DOOR2; break;
       case 1: objtype = DOOR1; break;
       case 0: objtype = NONE; break;
     }
-    if(objtype == DOOR && obj->d.y >= 6)
+    if(objtype == DOOR && obj->id >= 6)
       return ((pureAscii ? '|' : 4) |
           obj_color_pair(lvl, obj) | WA_ALTCHARSET);
       
   }
-  if (objtype == SWITCHON && obj->d.y >= 6) objtype = SWITCH;
-  else if (objtype == SWITCH && obj->d.y >= 6) objtype = SWITCHON;
+  if (objtype == SWITCHON && obj->id >= 6) objtype = SWITCH;
+  else if (objtype == SWITCH && obj->id >= 6) objtype = SWITCHON;
   return (screenglyph(objtype) | obj_color_pair(lvl, obj) | WA_ALTCHARSET);
 }
 
@@ -390,18 +390,18 @@ void map_screen (level & lvl, vector<vector<chtype> >& screenmap) {
     screenmap.push_back(screenline);
   }
 
-  XY sight = { lvl.objm.player->coord.x + lvl.aimobject.d.x, lvl.objm.player->coord.y + lvl.aimobject.d.y };
+  XY sight = { lvl.objm.player->coord.x + lvl.objm.player->d.x, lvl.objm.player->coord.y + lvl.objm.player->d.y };
   if (object_at(lvl, sight) == lvl.objm.NULLOBJ) {
-    screenc.x = (COLS/2)  + lvl.aimobject.d.x;
-    screenc.y = (LINES/2) + lvl.aimobject.d.y;
+    screenc.x = (COLS/2)  + lvl.objm.player->d.x;
+    screenc.y = (LINES/2) + lvl.objm.player->d.y;
     if (screenmap[screenc.y][screenc.x] == screenchar(NONE))
 #ifndef __NOSDL__
-      screenmap[screenc.y][screenc.x] = 250 | color_pair(lvl.aimobject.type) | WA_ALTCHARSET;
+      screenmap[screenc.y][screenc.x] = 250 | color_pair(lvl.objm.player->state) | WA_ALTCHARSET;
 #else
-    screenmap[screenc.y][screenc.x] = 250 | color_pair(lvl.aimobject.type);
+    screenmap[screenc.y][screenc.x] = 250 | color_pair(lvl.objm.player->state);
 #endif
     else
-      screenmap[screenc.y][screenc.x] = (screenmap[screenc.y][screenc.x] & ~A_COLOR) | color_pair(lvl.aimobject.type);
+      screenmap[screenc.y][screenc.x] = (screenmap[screenc.y][screenc.x] & ~A_COLOR) | color_pair(lvl.objm.player->state);
   }
 
   if (lvl.objm.portals[0] == lvl.objm.NULLOBJ || lvl.objm.portals[1] == lvl.objm.NULLOBJ)

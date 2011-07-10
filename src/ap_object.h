@@ -31,11 +31,38 @@
 
 using namespace std;
 
+// TODO: verify() and dump() might not work because of the
+// introduction of 'width' and 'height'.
+// Also, doors, switches and triggers might not work properly if given
+// a width or height strictly greater than 1.
+
 class object {
-  public:
+public:
+  object(int x, int y);
+
+  /* position. For objects that span on more than 1 area, it represents
+     the top-left position of the object.
+   */
   XY coord;
   int type, tick;
+
+  // velocity
+  XY v;
+
+  /* direction. Only used for some objects (e.g. aim direction for
+     player, normal direction for portals) */
   XY d;
+
+  // custom state (e.g. for doors: state of openness; for player:
+  // SHOT1 or SHOT2 depending on the color of the next shot)
+  int state;
+
+  // for switches/doors or texttriggers, the identification that makes
+  // the matching possible (from 0 to 12 for doors, from 0 to 8 for texttriggers)
+  int id;
+
+  int width;
+  int height;
 };
 
 typedef list<object>::iterator objiter;
