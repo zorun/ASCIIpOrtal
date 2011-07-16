@@ -47,6 +47,7 @@
 #include "ap_input.h"
 #include "ap_play.h"
 #include "ap_pager.h"
+#include "wm.h"
 
 using namespace std;
 extern const int CharData[MAXColors][6];
@@ -631,6 +632,15 @@ bool describe_mappack (MapPack const & mp) {
 
   mvwprintw(win, 6, 1, "Description:");
   mvwprintw(win, 7, 2, mp.properties.description.c_str());
+
+  Window desc;
+  desc << "Toto va à la plage.";
+  desc << 42;
+  desc << "Si si !\n";
+  desc << "Boarf...";
+  desc.display();
+  sleep(15);
+  desc.destroy();
 
   do {
     wrefresh(win);
