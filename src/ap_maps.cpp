@@ -13,9 +13,8 @@ void operator>>(ifstream& instream, mp_properties& p) {
   YAML::Parser parser(instream);
   YAML::Node node;
   parser.GetNextDocument(node);
-    
+
   node["protocol"] >> p.protocol;
-  node["number_maps"] >> p.number_maps;
   node["name"] >> p.name;
   node["description"] >> p.description;
   node["author"] >> p.author;
@@ -31,8 +30,6 @@ void operator<<(ostream& outstream, const mp_properties& p) {
   out << YAML::BeginMap;
   out << YAML::Key << "protocol" << YAML::Value << p.protocol;
   out << YAML::Comment("The protocol version used. Leave this to the default value.");
-  out << YAML::Key << "number_maps" << YAML::Value << p.number_maps;
-  out << YAML::Comment("The number of levels stored in this map pack.");
   out << YAML::Key << "name" << YAML::Value << p.name;
   out << YAML::Comment("The name of the map pack. Should not exceed 30 characters.");
   out << YAML::Key << "description" << YAML::Value << YAML::Literal << p.description;
@@ -55,7 +52,7 @@ void operator>>(ifstream& instream, mp_save& s)
   YAML::Parser parser(instream);
   YAML::Node node;
   parser.GetNextDocument(node);
-    
+
   node["version"] >> s.version;
   node["numportals"] >> s.numportals;
   node["numdeaths"] >> s.numdeaths;
@@ -128,7 +125,6 @@ void MapPack::load_properties() {
   }
   else {
     properties.protocol = 1;
-    properties.number_maps = 42;
     properties.name = name + "'s funny levels";
     properties.description = "This is a dumb default description intended to serve as an example.\nYou should really edit it to reflect the description of your own map pack!";
     properties.author = "ASCIIpOrtal";
@@ -144,7 +140,9 @@ void MapPack::load_properties() {
     infos.close();
     //ofstream tmp("/tmp/infos.yaml");
     //tmp << out.c_str();
-  }  
+  }
+  // calculate how many levels we have
+  properties.number_maps = filemgr.get_number_maps();
 }
 
 void MapPack::load_save() {
@@ -165,7 +163,7 @@ void MapPack::load_save() {
 
     // we still look at the old save.dat stuff
     if (file_exists(filemgr.get_old_save())) {
-      ifstream oldsavefile(filemgr.get_old_save().c_str());  
+      ifstream oldsavefile(filemgr.get_old_save().c_str());
       oldsavefile >> save.maxlevel;
       oldsavefile.close();
     }
@@ -176,7 +174,7 @@ void MapPack::load_save() {
   save.maxlevel = get_number_maps();
   cout << "Godmode activated! maxlevel set to " << save.maxlevel << endl;
 #endif
-  
+
   if (save.lastlevel == 0) save.lastlevel = save.maxlevel + 1;
 
 }
@@ -192,7 +190,7 @@ void MapPack::set_maxlevel(int new_maxlvl) {
     save.maxlevel = new_maxlvl;
     write_save();
   }
-  
+
 }
 
 void MapPack::set_lastlevel(int last) {
@@ -209,9 +207,11 @@ int MapPack::get_number_maps() const {
 }
 
 int MapPack::set_currentlevel(int newlvl) {
+  //cerr << "Setting current level to " << newlvl << endl;
   if (newlvl <= 0 || newlvl > get_number_maps() + 1)
     return -1;
 
+  lvl.clear();
   lvl.id = newlvl;
   set_lastlevel(newlvl);
 
@@ -219,6 +219,13 @@ int MapPack::set_currentlevel(int newlvl) {
     return -1; // the map pack is over, we don't load any map
 
   load_map();
+}
+
+void MapPack::reload_level() {
+  // keep stats
+  levelstats oldstats = lvl.stats;
+  set_currentlevel(get_currentlevel());
+  lvl.stats = oldstats;
 }
 
 // incrementation of the current level
@@ -250,7 +257,7 @@ int MapPack::load_map() {
   vector<string> rawmap;
   unsigned int maxwidth = 0;
   string line;
-  
+
   if (mapfile.is_open()) {
     while (! mapfile.eof() ) {
       getline (mapfile, line);
@@ -279,18 +286,12 @@ int MapPack::load_map() {
 #ifndef __NOSOUND__
     if (rawmap[yy].find("music") == 0) {
       if (rawmap[yy].find("default") == 6) {
-        //if ((rawmap[yy][13] >= '1') && (rawmap[yy][13] <= '9'))
-        // default_ambience(rawmap[yy][13] - '1' + 1);
-        //else default_ambience(0);
+        if ((rawmap[yy][13] >= '1') && (rawmap[yy][13] <= '9'))
+          lvl.musicid = rawmap[yy][13] - '1' + 1;
+        else lvl.musicid = 0;
       }
-      else {
-        string musicfile = rawmap[yy].substr (6, (signed)rawmap[yy].size() - 6);
-        //TODO: move this somewhere else
-        //load_ambience(mappack, musicfile);
-        musicfile.clear();
-      }
-      //TODO: 
-      //start_ambience();
+      else
+        lvl.musicfile = rawmap[yy].substr (6, (signed)rawmap[yy].size() - 6);
     } else
 #endif
     if (rawmap[yy].find("message") == 0) {
@@ -299,7 +300,7 @@ int MapPack::load_map() {
       } else {
         lvl.pager.add_scrolling(rawmap[yy].substr (8, (signed)rawmap[yy].size() - 8));
 #ifndef __NOSOUND__
-        //TODO:        play_sound(VOICE + rand() % 10);
+        lvl.has_message = true;
 #endif
       }
     } else if (rawmap[yy].find("name") == 0) {
@@ -368,7 +369,8 @@ int MapPack::load_map() {
 
     if (lvl.objm.objs.size() == 0)
       debug("objm.objs.size() == 0 : this is supposed to be bad");
-      /*  mvprintw (LINES / 2 - 1, (COLS - 20) / 2, "Error in level %03d", lvl + 1);
+#if WAITING_FOR_REFACTORING
+    mvprintw (LINES / 2 - 1, (COLS - 20) / 2, "Error in level %03d", lvl + 1);
     mvprintw (LINES / 2 , (COLS - 24) / 2,"Level contains no objects", lvl + 1);
     mvprintw (LINES / 2 + 1, (COLS - 11) / 2, "Press a key");
     refresh ();
@@ -384,9 +386,9 @@ int MapPack::load_map() {
       input = getch ();
     } while (input == ERR);
     return 0;
-    }*/
+    }
 
-  /*  if (hasplayer != 1) {
+  if (hasplayer != 1) {
     mvprintw (LINES / 2 - 1, (COLS - 20) / 2, "Error in level %03d", lvl + 1);
     mvprintw(LINES / 2, (COLS - 50) / 2,"Level contains more or less than one player object");
     mvprintw (LINES / 2 + 1, (COLS - 11) / 2, "Press a key");
@@ -403,8 +405,9 @@ int MapPack::load_map() {
       input = getch ();
     } while (input == ERR);
     return 0;
-    }*/
-
+    }
+#endif
+    return 0;
 } // MapPack::load_map
 
 void MapPack::update_stats() {

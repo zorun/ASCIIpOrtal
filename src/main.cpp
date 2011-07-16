@@ -30,6 +30,17 @@
 #include <vector>
 #include <ctime>
 #include <locale.h>
+#include <unistd.h>
+
+// for chdir() on windows
+#include <unistd.h>
+
+// for dirname
+#include <libgen.h>
+
+// Necessary to compile on OS X
+#include <SDL/SDL.h>
+
 using namespace std;
 #include "asciiportal.h"
 #include "ap_filemgr.h"
@@ -51,6 +62,9 @@ void debug(string message) {
 }
 
 int main(int args, char* argv[]) {
+  // to be able to find maps/media in the same directory as the binary
+  chdir(dirname(argv[0]));
+
   string mappack_name = filemgr.default_mappack;
   bool fullscreen = false;
   bool pureAscii = false;
@@ -117,7 +131,7 @@ int main(int args, char* argv[]) {
 
     cin.get();
   }
-  
+
   setlocale (LC_ALL, "");
 
   graphics_init (fullscreen, height, width, pureAscii);
