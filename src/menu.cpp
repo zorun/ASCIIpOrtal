@@ -63,18 +63,6 @@ int chartoscreen(char o) {
   return screenchar(NONE);
 }
 
-void fillsquare(int y1, int x1, int height, int width) {
-  for (int yy = y1; yy < height + y1; yy++)
-    for (int xx = x1; xx < width + x1; xx++)
-      mvaddch (yy, xx, ' ');
-}
-
-void wfillsquare(WINDOW* win, int y1, int x1, int height, int width) {
-  for (int yy = y1; yy < height + y1; yy++)
-    for (int xx = x1; xx < width + x1; xx++)
-      mvwaddch(win, yy, xx, ' ');
-}
-
 void help_menu () {
   int maxwidth = 0;
 #ifdef __DINGOO__
@@ -636,8 +624,8 @@ bool describe_mappack (MapPack const & mp) {
   desc << "Si si !\n";
   desc << "Boarf...";
   desc.display();
-  sleep(15);
-  desc.destroy();
+  sleep(1);
+  //desc.destroy();
 
   do {
     wrefresh(win);

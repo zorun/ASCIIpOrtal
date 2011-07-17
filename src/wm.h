@@ -9,6 +9,9 @@
 
 #include <curses.h>
 
+void fillsquare(int, int, int, int);
+void wfillsquare(WINDOW*, int, int, int, int);
+
 class Window {
 protected:
   static std::list<Window> win_list;
@@ -28,7 +31,7 @@ public:
   Window& operator=(const Window &);
 
   void resize(int x, int y);
-  void operator<<(std::string&);
+  void operator<<(const std::string&);
   void operator<<(int);
   void operator<<(char[]);
   void update();

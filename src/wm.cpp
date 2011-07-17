@@ -6,7 +6,19 @@
 
 #include <curses.h>
 
+#include "ap_draw.h"
+
 using namespace std;
+
+void wfillsquare(WINDOW* win, int y1, int x1, int height, int width) {
+  for (int yy = y1; yy < height + y1; yy++)
+    for (int xx = x1; xx < width + x1; xx++)
+      mvwaddch(win, yy, xx, ' ');
+}
+
+void fillsquare(int y1, int x1, int height, int width) {
+  wfillsquare(stdscr, y1, x1, height, width);
+}
 
 list<Window> Window::win_list;
 
@@ -37,7 +49,7 @@ void Window::resize(int x, int y) {
   height = y;
 }
 
-void Window::operator<<(string& s) {
+void Window::operator<<(const string& s) {
   buffer << s;
 }
 
@@ -50,15 +62,21 @@ void Window::operator<<(char s[]) {
 }
 
 void Window::update() {
-  waddstr(win, buffer.str().c_str());
-  buffer.clear();
-  for (witer i = win_list.begin(); i != win_list.end(); ++i) {
-    if (i->win != NULL)
-      wnoutrefresh(i->win);
+  if (!win_list.empty()) {
+    for (witer i = win_list.begin(); i != win_list.end(); ++i) {
+      if (i->win != NULL)
+        wnoutrefresh(i->win);
+    }
+    if (win != NULL) {
+      wattrset(win, color_pair(TEXTFIELD));
+      waddstr(win, buffer.str().c_str());
+      buffer.str("");
+      wnoutrefresh(win);
+    }
   }
-  if (win != NULL)
-    wnoutrefresh(win);
+  //napms(4);
   doupdate();
+  napms(4);
 }
 
 void Window::display() {
@@ -67,14 +85,22 @@ void Window::display() {
   if (height == 0)
     height = LINES / 2;
   win = newwin(height, width, (LINES-height)/2, (COLS-width)/2);
+  wattrset(win, color_pair(HELPMENU));
+  wfillsquare(win, 0, 0, height, width);
+  wattrset(win, color_pair(MENUSELECT));
+  wfillsquare(win, 1, 1, height-2, width-2);
+  //wrefresh(win);
+  wmove(win, 1, 1);
   update();
 }
 
 void Window::destroy() {
-  win_list.erase(own_iter);
-  delwin(win);
-  win = NULL;
-  display();
+  if (win != NULL) {
+    delwin(win);
+    win = NULL;
+    win_list.erase(own_iter);
+    update();
+  }
 }
 
 Window::~Window() {

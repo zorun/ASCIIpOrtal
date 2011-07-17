@@ -55,6 +55,7 @@ using namespace std;
 #include "ap_play.h"
 #include "ap_object.h"
 #include "ap_pager.h"
+#include "wm.h"
 
 
 extern const int CharData [MAXColors][6] = // File, Screen, AltScreen (low-ascii), Foreground, background, WA_BOLD

@@ -29,8 +29,6 @@
 #include "ap_maps.h"
 #include <string>
 
-void fillsquare(int, int, int, int);
-
 void help_menu ();
 
 int main_menu (MapPack &);
